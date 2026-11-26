@@ -432,12 +432,18 @@ const server = http.createServer(async (req, res) => {
   return sendJson(res, 404, { error: "Not found." });
 });
 
-// Start the server only when this file is run directly (not when loaded by a test).
-if (require.main === module) {
+// Starts listening for requests. Called when this file is run directly, and by the
+// server.js file in the project root (the entry point Vercel looks for).
+// Tests load this file without calling it, so no server starts during tests.
+function startServer() {
   server.listen(port, () => {
     console.log(`CafeBot backend running at http://localhost:${port}`);
     console.log(`Chat endpoint: POST http://localhost:${port}/api/chat`);
   });
 }
 
-module.exports = { buildAiRequest, loadBotContext, getOrCreateSession, sessions };
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = { buildAiRequest, loadBotContext, getOrCreateSession, sessions, startServer };
