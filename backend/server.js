@@ -16,7 +16,8 @@
 // to copy them, never to calculate or invent a price itself.
 //
 // Each chat has a session with its own order (see orderState.js).
-// Sessions are kept in memory only: they are lost when the server restarts.
+// Sessions are kept in memory (lost when the server restarts), or in Upstash Redis when it
+// is configured, so they survive restarts and work across Vercel's server copies.
 //
 // NOT CONNECTED TO THE AI YET: callAi() returns a placeholder reply.
 //
@@ -86,6 +87,8 @@ const { validateOrderDetailsAction, handleOrderDetails } = require("./orderDetai
 const { validateReviewOrderAction, handleReviewOrder } = require("./checkoutSummary");
 const { validateConfirmOrderAction, handleConfirmOrder } = require("./confirmOrder");
 const { createOrderStore } = require("./orderStore");
+const { redisSettingsFromEnv, createRedisClient } = require("./redis");
+const { createRedisOrderStore, createRedisSessionStore } = require("./redisStore");
 const { handleStaffRequest } = require("./staffApi");
 
 // The order actions /api/chat accepts. Each is checked and handled by code, using the menu only.
@@ -196,6 +199,16 @@ function touchSession(session) {
   sessions.set(session.id, session);
 }
 
+// The in-memory session store. Sessions are changed in place in the Map above,
+// so save() has nothing to do. (The Redis session store in redisStore.js has the same
+// load/save shape and is used instead when Redis is configured.)
+const memorySessionStore = {
+  async load(sessionId) {
+    return getOrCreateSession(sessionId);
+  },
+  async save() {},
+};
+
 // PORT comes from the environment. Falls back to 3000 if it is missing or not a number.
 const port = Number.parseInt(process.env.PORT, 10) || 3000;
 
@@ -288,9 +301,17 @@ async function loadBotContext() {
 
 // ---------- Saving confirmed orders ----------
 
-// The only writer of data/orders.json. It refuses anything that isn't a fully confirmed
-// order and gives each one a unique order ID (see orderStore.js).
-const orderStore = createOrderStore(ORDERS_PATH);
+// Where orders and sessions are kept:
+// - with Upstash Redis configured (KV_REST_API_URL and KV_REST_API_TOKEN, see redis.js),
+//   both go to Redis (redisStore.js). Needed on Vercel, where files can't be written.
+// - otherwise, orders go to data/orders.json (orderStore.js) and sessions stay in memory.
+// Either way, the store refuses anything that isn't a fully confirmed order and gives
+// each one a unique order ID.
+const redisSettings = redisSettingsFromEnv();
+const redisCommand = redisSettings ? createRedisClient(redisSettings) : null;
+const orderStore = redisCommand ? createRedisOrderStore(redisCommand) : createOrderStore(ORDERS_PATH);
+const sessionStore = redisCommand ? createRedisSessionStore(redisCommand) : memorySessionStore;
+if (redisCommand) console.log("Storage: Upstash Redis");
 
 // JSON for inside a tag: "<" is escaped so the data can't close the tag early.
 function tagJson(data) {
@@ -369,7 +390,23 @@ function handleChat(req, res) {
       return sendJson(res, 500, { error: "CafeBot isn't available right now. Please ask café staff." });
     }
 
-    const session = getOrCreateSession(body.sessionId);
+    // The session is loaded at the start of each request and saved before the reply.
+    let session;
+    try {
+      session = await sessionStore.load(body.sessionId);
+    } catch (err) {
+      console.error("Could not load session:", err.message);
+      return sendJson(res, 500, { error: "Sorry, something went wrong. Please try again." });
+    }
+    const saveSession = async () => {
+      try {
+        await sessionStore.save(session);
+        return true;
+      } catch (err) {
+        console.error("Could not save session:", err.message);
+        return false;
+      }
+    };
 
     // Prices first: the order is brought up to date with the current menu and pricing settings.
     const pricingNote = refreshPricing(session.order, context.menu, context.pricing, context.promotions);
@@ -394,6 +431,11 @@ function handleChat(req, res) {
       if (result.needsInfo) response.needsInfo = result.needsInfo;
       if (result.checkoutSummary) response.checkoutSummary = result.checkoutSummary;
       if (result.orderNumber) response.orderNumber = result.orderNumber;
+      if (!(await saveSession()) && !result.orderNumber) {
+        // The change couldn't be kept, so don't tell the customer it was made.
+        // (A placed order is already saved, so its confirmation is still shown.)
+        return sendJson(res, 500, { error: "Sorry, something went wrong. Please try again." });
+      }
       return sendJson(res, 200, response);
     }
 
@@ -402,6 +444,7 @@ function handleChat(req, res) {
       if (pricingNote) orderSummary.note = pricingNote;
       const aiRequest = buildAiRequest(context, body.message, body.history, orderSummary);
       const reply = await callAi(aiRequest);
+      await saveSession(); // keeps any price update from refreshPricing
       return sendJson(res, 200, {
         reply,
         sessionId: session.id,

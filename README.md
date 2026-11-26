@@ -27,6 +27,8 @@ It uses only Node.js built-in modules, so there is nothing to install.
      dashboard. The dashboard stays switched off until this is set.
    - `PORT`: optional. Delete the line to use port 3000.
    - `AI_API_KEY`, `AI_MODEL`, `AI_MAX_TOKENS`: not used until the AI is connected.
+   - `KV_REST_API_URL`, `KV_REST_API_TOKEN`: leave as they are. Without real values,
+     orders are saved to `data/orders.json` and chat sessions are kept in memory.
 3. Start the server:
 
    ```
@@ -46,17 +48,20 @@ It uses only Node.js built-in modules, so there is nothing to install.
 
 ## Deploying
 
-- Set the environment variables (`STAFF_TOKEN`, and `PORT` if your host needs it) in
-  your hosting service's settings. Never upload `.env`.
-- The start command is `npm start`.
-- The server must run as a long-running Node.js process. It keeps chat sessions in
-  memory, so they are lost when it restarts.
-- **Order storage is for development and demos only.** Orders are saved to
-  `data/orders.json`, which needs a disk that keeps its files. Serverless hosts such as
-  Vercel don't guarantee that file writes persist, so orders could fail to save or be
-  lost. Use a host with a persistent disk for a demo, and a real database before going live.
-- Serve the site over HTTPS. The staff password and customers' details travel with
-  every request.
+CafeBot is deployed on Vercel from the `main` branch of its GitHub repository: every
+push to `main` deploys automatically. Vercel starts it from `server.js` in the project root.
+
+- **Storage:** Vercel can't save files, so orders and chat sessions are kept in an
+  Upstash Redis database connected to the Vercel project (Storage tab). Connecting it
+  sets `KV_REST_API_URL` and `KV_REST_API_TOKEN` for you. Without them, orders can't be
+  saved on Vercel: customers are told their order wasn't placed.
+- **Staff password:** add `STAFF_TOKEN` under Settings → Environment Variables, as a
+  Secret, then redeploy. Never upload `.env`.
+- **Other hosts:** the start command is `npm start`. Without Redis configured, the server
+  must be one long-running process with a disk that keeps its files: orders go to
+  `data/orders.json` and chat sessions are lost when it restarts.
+- Serve the site over HTTPS (Vercel does this). The staff password and customers'
+  details travel with every request.
 
 ## Keeping secrets and customer data out of git
 

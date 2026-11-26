@@ -3,6 +3,7 @@
 // On serverless hosting such as Vercel, functions don't guarantee persistent file writes:
 // the file system is read-only or temporary, so saved orders can fail to save or be lost
 // between requests and deployments. Before going live, store orders in a real database.
+// When Upstash Redis is configured (see redis.js), server.js uses redisStore.js instead.
 //
 // CafeBot order store: saves confirmed orders to data/orders.json.
 //
@@ -112,6 +113,31 @@ class StatusChangeError extends Error {
   }
 }
 
+// Changes one saved order (an object) from "from" to "to", or throws StatusChangeError.
+// "from" must be the status the staff member saw: if someone else has changed it since,
+// nothing changes (409). Used by both this file store and the Redis store (redisStore.js).
+function applyStatusChange(order, from, to) {
+  if (order.status !== from) {
+    throw new StatusChangeError(`This order is now "${order.status}". Someone may have just changed it.`, 409);
+  }
+  const allowed = STATUS_TRANSITIONS[order.status] || [];
+  if (!allowed.includes(to)) {
+    throw new StatusChangeError(`An order that is "${order.status}" can't be changed to "${to}".`, 422);
+  }
+  const at = getClock().toISOString();
+  if (!Array.isArray(order.statusHistory)) order.statusHistory = [{ status: order.status, at: order.confirmedAt }];
+  order.statusHistory.push({ status: to, at });
+  order.status = to;
+  order.updatedAt = at;
+  return order;
+}
+
+// The record exactly as it is saved, with its new orderId and savedAt.
+function buildSavedRecord(record, orderId, savedAt) {
+  const { status, confirmedAt, items, fulfillment, promotion, totals, confirmation } = record;
+  return { schemaVersion: SCHEMA_VERSION, orderId, status, confirmedAt, savedAt, items, fulfillment, promotion: promotion || null, totals, confirmation };
+}
+
 // Returns { save(record), list(), updateStatus(orderId, from, to) } for one orders.json file.
 // save() checks the record, gives it a unique orderId and savedAt, appends it,
 // and resolves to { orderId, savedAt }. It throws (and writes nothing) if anything is wrong.
@@ -151,30 +177,17 @@ function createOrderStore(filePath) {
     const takenIds = new Set(existing.map((saved) => saved && saved.orderId).filter(Boolean));
     const orderId = newOrderId(record.confirmedAt, takenIds);
     const savedAt = getClock().toISOString();
-    const { status, confirmedAt, items, fulfillment, promotion, totals, confirmation } = record;
-    existing.push({ schemaVersion: SCHEMA_VERSION, orderId, status, confirmedAt, savedAt, items, fulfillment, promotion: promotion || null, totals, confirmation });
+    existing.push(buildSavedRecord(record, orderId, savedAt));
     await writeAll(existing);
     return { orderId, savedAt };
   }
 
-  // Moves one order from "from" to "to". "from" must be the status the staff member saw:
-  // if someone else has changed it since, nothing is written (409).
+  // Moves one order from "from" to "to" (see applyStatusChange).
   async function changeStatus(orderId, from, to) {
     const orders = await readAll();
     const order = orders.find((o) => o && o.orderId === orderId);
     if (!order) throw new StatusChangeError("Order not found.", 404);
-    if (order.status !== from) {
-      throw new StatusChangeError(`This order is now "${order.status}". Someone may have just changed it.`, 409);
-    }
-    const allowed = STATUS_TRANSITIONS[order.status] || [];
-    if (!allowed.includes(to)) {
-      throw new StatusChangeError(`An order that is "${order.status}" can't be changed to "${to}".`, 422);
-    }
-    const at = getClock().toISOString();
-    if (!Array.isArray(order.statusHistory)) order.statusHistory = [{ status: order.status, at: order.confirmedAt }];
-    order.statusHistory.push({ status: to, at });
-    order.status = to;
-    order.updatedAt = at;
+    applyStatusChange(order, from, to);
     await writeAll(orders);
     return order;
   }
@@ -193,4 +206,13 @@ function createOrderStore(filePath) {
   };
 }
 
-module.exports = { createOrderStore, validateConfirmedRecord, SCHEMA_VERSION, STATUS_TRANSITIONS, StatusChangeError };
+module.exports = {
+  createOrderStore,
+  validateConfirmedRecord,
+  applyStatusChange,
+  buildSavedRecord,
+  newOrderId,
+  SCHEMA_VERSION,
+  STATUS_TRANSITIONS,
+  StatusChangeError,
+};
