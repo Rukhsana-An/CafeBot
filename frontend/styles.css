@@ -1,0 +1,244 @@
+/* CafeBot chat interface */
+
+:root {
+  --espresso: #3b2a20;
+  --roast: #6f4e37;
+  --cream: #faf6f1;
+  --foam: #ffffff;
+  --latte: #efe5da;
+  --text: #2b211b;
+  --muted: #8a7a6e;
+  --amber: #f0ad4e;
+  --radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--latte);
+}
+
+/* Layout: full screen on phones, a centred card on larger screens */
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--cream);
+}
+
+@media (min-width: 760px) {
+  body {
+    padding: 24px;
+  }
+
+  .chat {
+    height: calc(100vh - 48px); /* fallback for browsers without dvh */
+    height: calc(100dvh - 48px);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(59, 42, 32, 0.18);
+  }
+}
+
+/* Header */
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  padding-top: max(14px, env(safe-area-inset-top));
+  background: var(--espresso);
+  color: var(--foam);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--roast);
+  font-size: 22px;
+}
+
+.chat-header h1 {
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber); /* amber = preview, not live */
+}
+
+/* Messages */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 14px;
+  scroll-behavior: smooth;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  max-width: 82%;
+  animation: pop-in 0.2s ease-out;
+}
+
+.message.bot {
+  align-self: flex-start;
+}
+
+.message.user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.bubble {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.message.bot .bubble {
+  background: var(--foam);
+  border: 1px solid var(--latte);
+  border-bottom-left-radius: 6px;
+}
+
+.message.user .bubble {
+  background: var(--roast);
+  color: var(--foam);
+  border-bottom-right-radius: 6px;
+}
+
+.time {
+  margin: 3px 6px 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Input area */
+.composer {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  background: var(--foam);
+  border-top: 1px solid var(--latte);
+}
+
+.composer-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid #dccfc2;
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--text);
+  font: inherit; /* 16px keeps iOS from zooming in on focus */
+  -webkit-appearance: none; /* removes iOS Safari's inner shadow */
+  appearance: none;
+}
+
+.composer-input:focus {
+  outline: none;
+  border-color: var(--roast);
+  box-shadow: 0 0 0 3px rgba(111, 78, 55, 0.18);
+}
+
+.send-button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--espresso);
+  color: var(--foam);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.send-button:hover:not(:disabled) {
+  background: var(--roast);
+}
+
+.send-button:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.send-button:disabled {
+  background: #cbbcae;
+  cursor: not-allowed;
+}
+
+.send-button:focus-visible {
+  outline: 3px solid rgba(111, 78, 55, 0.4);
+  outline-offset: 2px;
+}
+
+/* Screen-reader-only label */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message {
+    animation: none;
+  }
+
+  .messages {
+    scroll-behavior: auto;
+  }
+}

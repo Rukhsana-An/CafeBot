@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#3b2a20">
+  <title>CafeBot</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="chat">
+    <header class="chat-header">
+      <div class="avatar" aria-hidden="true">☕</div>
+      <div class="header-text">
+        <h1>CafeBot</h1>
+        <p class="status"><span class="status-dot" aria-hidden="true"></span>Preview mode</p>
+      </div>
+    </header>
+
+    <main id="messages" class="messages" aria-live="polite" aria-label="Chat messages"></main>
+
+    <form id="chat-form" class="composer" autocomplete="off">
+      <label for="message-input" class="visually-hidden">Type your message</label>
+      <input
+        id="message-input"
+        class="composer-input"
+        type="text"
+        placeholder="Type your message…"
+        maxlength="500"
+      >
+      <button id="send-button" class="send-button" type="submit" aria-label="Send message" disabled>
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="M3.4 20.4 21 12 3.4 3.6 3.4 10.2 15 12 3.4 13.8z" fill="currentColor"/>
+        </svg>
+      </button>
+    </form>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

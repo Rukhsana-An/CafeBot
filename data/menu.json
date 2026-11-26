@@ -1,0 +1,189 @@
+{
+  "currency": "PKR",
+  "items": [
+    {
+      "id": "HOT-001",
+      "name": "Espresso",
+      "category": "Hot Coffee",
+      "description": "A rich, concentrated shot of our house-roasted coffee.",
+      "price": 450,
+      "sizes": [
+        { "name": "Single", "extraCost": 0 },
+        { "name": "Double", "extraCost": 150 }
+      ],
+      "allergens": [],
+      "dietary": ["vegan", "gluten-free"],
+      "available": true
+    },
+    {
+      "id": "HOT-002",
+      "name": "Cappuccino",
+      "category": "Hot Coffee",
+      "description": "Espresso with steamed milk and a thick layer of milk foam.",
+      "price": 650,
+      "sizes": [
+        { "name": "Small", "extraCost": 0 },
+        { "name": "Medium", "extraCost": 100 },
+        { "name": "Large", "extraCost": 200 }
+      ],
+      "allergens": ["milk"],
+      "dietary": ["vegetarian", "gluten-free"],
+      "available": true
+    },
+    {
+      "id": "HOT-003",
+      "name": "Café Latte",
+      "category": "Hot Coffee",
+      "description": "Smooth espresso with plenty of steamed milk and a light foam top.",
+      "price": 650,
+      "sizes": [
+        { "name": "Small", "extraCost": 0 },
+        { "name": "Medium", "extraCost": 100 },
+        { "name": "Large", "extraCost": 200 }
+      ],
+      "allergens": ["milk"],
+      "dietary": ["vegetarian", "gluten-free"],
+      "available": true
+    },
+    {
+      "id": "HOT-004",
+      "name": "Caramel Macchiato",
+      "category": "Hot Coffee",
+      "description": "Vanilla-sweetened steamed milk marked with espresso and topped with caramel sauce.",
+      "price": 750,
+      "sizes": [
+        { "name": "Small", "extraCost": 0 },
+        { "name": "Medium", "extraCost": 100 },
+        { "name": "Large", "extraCost": 200 }
+      ],
+      "allergens": ["milk"],
+      "dietary": ["vegetarian", "gluten-free"],
+      "available": true
+    },
+    {
+      "id": "TEA-001",
+      "name": "Karak Chai",
+      "category": "Tea",
+      "description": "Strong black tea brewed with milk, sugar and cardamom.",
+      "price": 300,
+      "sizes": [
+        { "name": "Regular", "extraCost": 0 },
+        { "name": "Large", "extraCost": 100 }
+      ],
+      "allergens": ["milk"],
+      "dietary": ["vegetarian", "gluten-free"],
+      "available": true
+    },
+    {
+      "id": "TEA-002",
+      "name": "Green Tea",
+      "category": "Tea",
+      "description": "Light, refreshing green tea, served plain or with lemon and honey.",
+      "price": 350,
+      "sizes": [
+        { "name": "Regular", "extraCost": 0 },
+        { "name": "Large", "extraCost": 100 }
+      ],
+      "allergens": [],
+      "dietary": ["vegetarian", "gluten-free"],
+      "available": true
+    },
+    {
+      "id": "COLD-001",
+      "name": "Iced Latte",
+      "category": "Cold Drinks",
+      "description": "Espresso and cold milk poured over ice.",
+      "price": 700,
+      "sizes": [
+        { "name": "Medium", "extraCost": 0 },
+        { "name": "Large", "extraCost": 150 }
+      ],
+      "allergens": ["milk"],
+      "dietary": ["vegetarian", "gluten-free"],
+      "available": true
+    },
+    {
+      "id": "COLD-002",
+      "name": "Mint Lemonade",
+      "category": "Cold Drinks",
+      "description": "Fresh lemon juice blended with mint leaves and ice.",
+      "price": 500,
+      "sizes": [
+        { "name": "Medium", "extraCost": 0 },
+        { "name": "Large", "extraCost": 150 }
+      ],
+      "allergens": [],
+      "dietary": ["vegan", "gluten-free"],
+      "available": true
+    },
+    {
+      "id": "COLD-003",
+      "name": "Mango Smoothie",
+      "category": "Cold Drinks",
+      "description": "Ripe mango blended with yoghurt and a little honey.",
+      "price": 750,
+      "sizes": [
+        { "name": "Medium", "extraCost": 0 },
+        { "name": "Large", "extraCost": 150 }
+      ],
+      "allergens": ["milk"],
+      "dietary": ["vegetarian", "gluten-free"],
+      "available": false
+    },
+    {
+      "id": "BAKE-001",
+      "name": "Butter Croissant",
+      "category": "Bakery",
+      "description": "Flaky, golden croissant baked fresh every morning.",
+      "price": 450,
+      "sizes": [],
+      "allergens": ["wheat", "milk", "eggs"],
+      "dietary": ["vegetarian"],
+      "available": true
+    },
+    {
+      "id": "BAKE-002",
+      "name": "Chocolate Fudge Brownie",
+      "category": "Bakery",
+      "description": "Dense, chewy brownie made with dark chocolate and walnuts.",
+      "price": 400,
+      "sizes": [],
+      "allergens": ["wheat", "milk", "eggs", "tree nuts"],
+      "dietary": ["vegetarian"],
+      "available": true
+    },
+    {
+      "id": "BAKE-003",
+      "name": "Blueberry Muffin",
+      "category": "Bakery",
+      "description": "Soft muffin packed with blueberries and a crumble topping.",
+      "price": 380,
+      "sizes": [],
+      "allergens": ["wheat", "milk", "eggs"],
+      "dietary": ["vegetarian"],
+      "available": true
+    },
+    {
+      "id": "FOOD-001",
+      "name": "Chicken Club Sandwich",
+      "category": "Food",
+      "description": "Grilled chicken, egg, lettuce, tomato and mayo in toasted bread, served with fries.",
+      "price": 950,
+      "sizes": [],
+      "allergens": ["wheat", "eggs"],
+      "dietary": ["halal"],
+      "available": true
+    },
+    {
+      "id": "FOOD-002",
+      "name": "Veggie Wrap",
+      "category": "Food",
+      "description": "Grilled vegetables, hummus and fresh greens in a soft tortilla.",
+      "price": 800,
+      "sizes": [],
+      "allergens": ["wheat", "sesame"],
+      "dietary": ["vegan"],
+      "available": true
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "currency": "PKR",
+  "taxPercent": 0,
+  "deliveryFee": 0,
+  "notes": "Set these to the café's real values. taxPercent: e.g. 16 for 16%, added to item prices after any discount (use 0 if menu prices already include tax). deliveryFee: a whole number in PKR, added to delivery orders only, not taxed. 0 means no charge, and that line isn't shown to the customer."
+}

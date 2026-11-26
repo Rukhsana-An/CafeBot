@@ -1,0 +1,76 @@
+{
+  "currency": "PKR",
+  "generalRules": [
+    "Only one promotion can be applied per order.",
+    "Promotions apply only to items marked available in the menu.",
+    "Discounts are calculated on menu prices, including any size extra cost.",
+    "All days and times are in the café's local time."
+  ],
+  "promotions": [
+    {
+      "id": "PROMO-001",
+      "name": "Morning Coffee & Croissant",
+      "description": "Get any hot coffee with a Butter Croissant and save 15% on both items.",
+      "active": true,
+      "startDate": "2026-11-01",
+      "endDate": "2026-12-31",
+      "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      "startTime": "08:00",
+      "endTime": "11:00",
+      "eligibility": {
+        "requiredItems": [
+          { "category": "Hot Coffee", "quantity": 1 },
+          { "itemId": "BAKE-001", "quantity": 1 }
+        ],
+        "minOrderTotal": 0
+      },
+      "discount": {
+        "type": "percent",
+        "value": 15,
+        "appliesTo": "One hot coffee and one Butter Croissant per order."
+      }
+    },
+    {
+      "id": "PROMO-002",
+      "name": "Chai Break: Buy 2, Get 1 Free",
+      "description": "Order 3 Karak Chai on a weekday afternoon and the third one is free.",
+      "active": true,
+      "startDate": "2026-11-01",
+      "endDate": "2026-12-31",
+      "days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
+      "startTime": "15:00",
+      "endTime": "18:00",
+      "eligibility": {
+        "requiredItems": [
+          { "itemId": "TEA-001", "quantity": 3 }
+        ],
+        "minOrderTotal": 0
+      },
+      "discount": {
+        "type": "free_item",
+        "value": 1,
+        "appliesTo": "The cheapest of the three Karak Chai is free. Applies once per order."
+      }
+    },
+    {
+      "id": "PROMO-003",
+      "name": "Big Order Saver",
+      "description": "Spend PKR 3,000 or more and get 10% off your whole order.",
+      "active": true,
+      "startDate": "2026-11-15",
+      "endDate": "2026-12-15",
+      "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      "startTime": "00:00",
+      "endTime": "23:59",
+      "eligibility": {
+        "requiredItems": [],
+        "minOrderTotal": 3000
+      },
+      "discount": {
+        "type": "percent",
+        "value": 10,
+        "appliesTo": "The whole order total, before any other discount."
+      }
+    }
+  ]
+}

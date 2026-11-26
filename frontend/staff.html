@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>CafeBot · Staff orders</title>
+  <style>
+    :root {
+      --espresso: #3b2a20; --roast: #6f4e37; --cream: #faf6f1; --foam: #fff; --latte: #efe5da;
+      --text: #2b211b; --muted: #7a6a5e; --line: #e3d7ca;
+      --blue: #2f6fb0; --amber: #b7791f; --green: #2f7d4f; --red: #b23b3b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 15px; line-height: 1.45; color: var(--text); background: var(--cream); }
+    header { background: var(--espresso); color: var(--foam); padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    header h1 { font-size: 18px; font-weight: 600; margin-right: auto; }
+    main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    button, input { font: inherit; }
+    button { border: 1px solid var(--line); background: var(--foam); color: var(--text); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+    button:hover { border-color: var(--roast); }
+    button:disabled { opacity: .5; cursor: default; }
+    button.primary { background: var(--roast); border-color: var(--roast); color: var(--foam); }
+    button.danger { color: var(--red); }
+    header button { background: transparent; color: var(--foam); border-color: rgba(255,255,255,.35); }
+    .filters { display: flex; gap: 6px; }
+    .filters button[aria-pressed="true"] { background: var(--foam); color: var(--espresso); }
+    #login { max-width: 360px; margin: 48px auto; background: var(--foam); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }
+    #login h2 { font-size: 17px; margin-bottom: 12px; }
+    #login label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+    #login input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 12px; }
+    #message { margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; background: #fdecec; color: var(--red); }
+    #message.info { background: var(--latte); color: var(--text); }
+    .meta { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+    .orders { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+    .order { background: var(--foam); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .order-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .order-id { font-weight: 700; font-family: ui-monospace, Consolas, monospace; font-size: 14px; }
+    .time { color: var(--muted); font-size: 13px; }
+    .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: var(--foam); }
+    .badge.confirmed { background: var(--blue); } .badge.preparing { background: var(--amber); }
+    .badge.ready { background: var(--green); } .badge.completed { background: var(--muted); } .badge.cancelled { background: var(--red); }
+    .section-label { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    ul.items { list-style: none; }
+    ul.items li { padding: 2px 0; display: flex; justify-content: space-between; gap: 8px; }
+    .total { display: flex; justify-content: space-between; font-weight: 700; border-top: 1px solid var(--line); padding-top: 8px; }
+    .discount { color: var(--green); font-size: 13px; }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .empty { text-align: center; color: var(--muted); padding: 48px 0; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CafeBot · Staff orders</h1>
+    <div class="filters" id="filters" hidden>
+      <button type="button" data-filter="active" aria-pressed="true">Active</button>
+      <button type="button" data-filter="all" aria-pressed="false">All</button>
+    </div>
+    <button type="button" id="refresh" hidden>Refresh</button>
+    <button type="button" id="signout" hidden>Sign out</button>
+  </header>
+
+  <main>
+    <div id="message" role="alert" hidden></div>
+
+    <form id="login" hidden>
+      <h2>Staff sign in</h2>
+      <label for="token">Staff password</label>
+      <input id="token" type="password" autocomplete="current-password" required>
+      <button type="submit" class="primary">Sign in</button>
+    </form>
+
+    <section id="board" hidden>
+      <p class="meta" id="meta"></p>
+      <div class="orders" id="orders" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <script>
+    "use strict";
+    // Reads orders from /api/staff/orders and changes status with
+    // POST /api/staff/orders/<id>/status. All text is shown with textContent, never as HTML.
+
+    const REFRESH_MS = 15000;
+    const CAFE_TIME_ZONE = "Asia/Karachi";
+    const FINAL = ["completed", "cancelled"];
+    const STATUS_LABELS = {
+      confirmed: "New", preparing: "Preparing", completed: "Completed", cancelled: "Cancelled",
+      ready: { "dine-in": "Ready to serve", pickup: "Ready for pickup", delivery: "Out for delivery" },
+    };
+    const ACTION_LABELS = {
+      preparing: "Start preparing",
+      ready: { "dine-in": "Mark ready", pickup: "Ready for pickup", delivery: "Out for delivery" },
+      completed: { "dine-in": "Served", pickup: "Picked up", delivery: "Delivered" },
+      cancelled: "Cancel order",
+    };
+    const FULFILLMENT_LABELS = { "dine-in": "Dine-in", pickup: "Pickup", delivery: "Delivery" };
+
+    const $ = (id) => document.getElementById(id);
+    let token = sessionStorage.getItem("cafebotStaffToken") || "";
+    let filter = "active";
+    let orders = [];
+    let timer = null;
+    let busy = false;
+
+    function label(map, status, type) {
+      const value = map[status];
+      return typeof value === "object" ? value[type] || status : value || status;
+    }
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+    function money(totals, amount) { return `${totals.currency} ${amount}`; }
+    function cafeTime(iso) {
+      return new Intl.DateTimeFormat("en-GB", { timeZone: CAFE_TIME_ZONE, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+    }
+    function showMessage(text, kind = "error") {
+      const box = $("message");
+      box.textContent = text;
+      box.className = kind === "info" ? "info" : "";
+      box.hidden = !text;
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        ...options,
+        headers: { Authorization: `Bearer ${token}`, ...(options.body ? { "Content-Type": "application/json" } : {}) },
+      });
+      let data = {};
+      try { data = await response.json(); } catch { /* no body */ }
+      if (response.status === 401) { signOut("Wrong or missing staff password."); throw new Error("signed out"); }
+      if (!response.ok) throw Object.assign(new Error(data.error || `Request failed (${response.status}).`), { status: response.status });
+      return data;
+    }
+
+    function signOut(reason) {
+      token = "";
+      sessionStorage.removeItem("cafebotStaffToken");
+      clearInterval(timer);
+      orders = [];
+      $("orders").replaceChildren(); // remove customer details from the page, not just hide them
+      $("meta").textContent = "";
+      $("board").hidden = true; $("filters").hidden = true; $("refresh").hidden = true; $("signout").hidden = true;
+      $("login").hidden = false;
+      $("token").value = "";
+      showMessage(reason || "");
+      $("token").focus();
+    }
+
+    async function load() {
+      if (busy) return;
+      try {
+        const data = await api("/api/staff/orders");
+        orders = data.orders;
+        $("login").hidden = true; $("board").hidden = false;
+        $("filters").hidden = false; $("refresh").hidden = false; $("signout").hidden = false;
+        render(); // messages are left alone, so an error from a status change stays visible
+      } catch (err) {
+        if (err.message === "signed out") return;
+        showMessage(err.message);
+        if ($("board").hidden) $("login").hidden = false; // nothing shown yet: let staff try again
+      }
+    }
+
+    function render() {
+      const shown = orders
+        .filter((o) => filter === "all" || !FINAL.includes(o.status))
+        .sort((a, b) => Date.parse(b.confirmedAt) - Date.parse(a.confirmedAt));
+      const active = orders.filter((o) => !FINAL.includes(o.status)).length;
+      $("meta").textContent = `${active} active · ${orders.length} total · updated ${cafeTime(new Date().toISOString())} (café time)`;
+      const list = $("orders");
+      list.replaceChildren();
+      if (shown.length === 0) {
+        list.append(el("p", "empty", filter === "active" ? "No active orders." : "No orders yet."));
+        return;
+      }
+      for (const order of shown) list.append(renderOrder(order));
+    }
+
+    function renderOrder(order) {
+      const f = order.fulfillment || {};
+      const t = order.totals;
+      const card = el("article", "order");
+      card.dataset.orderId = order.orderId;
+
+      const head = el("div", "order-head");
+      head.append(el("span", "order-id", order.orderId), el("span", `badge ${order.status}`, label(STATUS_LABELS, order.status, f.type)));
+      card.append(head, el("div", "time", `Placed ${cafeTime(order.confirmedAt)}`));
+
+      // Fulfillment and customer
+      const who = el("div");
+      let type = FULFILLMENT_LABELS[f.type] || f.type;
+      if (f.type === "pickup") type += f.pickupTime === "asap" ? " · as soon as possible" : f.pickupTime ? ` · at ${f.pickupTime}` : "";
+      who.append(el("div", "section-label", type), el("div", "", f.customerName || ""));
+      if (f.type === "delivery" && f.delivery) {
+        who.append(el("div", "", `Phone: ${f.delivery.phone}`));
+        who.append(el("div", "", `Address: ${f.delivery.fullAddress || f.delivery.address}`));
+        if (f.delivery.instructions) who.append(el("div", "", `Instructions: ${f.delivery.instructions}`));
+      }
+      card.append(who);
+
+      // Items
+      const items = el("ul", "items");
+      for (const item of order.items) {
+        const size = item.customizations && item.customizations.size ? `${item.customizations.size} ` : "";
+        const row = el("li");
+        row.append(el("span", "", `${item.quantity} × ${size}${item.name}`), el("span", "", money(t, item.lineTotal)));
+        items.append(row);
+      }
+      card.append(items);
+
+      if (order.promotion) card.append(el("div", "discount", `${order.promotion.name}: -${money(t, t.discount)}`));
+      const extras = [];
+      if (t.tax > 0) extras.push(`Tax ${money(t, t.tax)}`);
+      if (t.deliveryFee > 0) extras.push(`Delivery fee ${money(t, t.deliveryFee)}`);
+      if (extras.length) card.append(el("div", "time", extras.join(" · ")));
+      const total = el("div", "total");
+      total.append(el("span", "", "Total"), el("span", "", money(t, t.total)));
+      card.append(total);
+
+      // Status controls: only the moves the server allows for this order.
+      if (order.nextStatuses.length) {
+        const actions = el("div", "actions");
+        for (const next of order.nextStatuses) {
+          const button = el("button", next === "cancelled" ? "danger" : "primary", label(ACTION_LABELS, next, f.type));
+          button.type = "button";
+          button.addEventListener("click", () => changeStatus(order, next, button));
+          actions.append(button);
+        }
+        card.append(actions);
+      }
+      return card;
+    }
+
+    async function changeStatus(order, to, button) {
+      if (to === "cancelled" && !window.confirm(`Cancel order ${order.orderId}?`)) return;
+      busy = true;
+      button.closest(".actions").querySelectorAll("button").forEach((b) => { b.disabled = true; });
+      try {
+        const data = await api(`/api/staff/orders/${encodeURIComponent(order.orderId)}/status`, {
+          method: "POST",
+          body: JSON.stringify({ from: order.status, to }), // "from" stops two staff overwriting each other
+        });
+        orders = orders.map((o) => (o.orderId === order.orderId ? data.order : o));
+        showMessage("");
+      } catch (err) {
+        if (err.message !== "signed out") showMessage(err.message);
+      } finally {
+        busy = false;
+      }
+      render();
+      if (token) load(); // pick up any other changes
+    }
+
+    $("login").addEventListener("submit", (event) => {
+      event.preventDefault();
+      token = $("token").value;
+      sessionStorage.setItem("cafebotStaffToken", token);
+      showMessage("");
+      load().then(() => { clearInterval(timer); if (token) timer = setInterval(load, REFRESH_MS); });
+    });
+    $("signout").addEventListener("click", () => signOut(""));
+    $("refresh").addEventListener("click", load);
+    $("filters").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-filter]");
+      if (!button) return;
+      filter = button.dataset.filter;
+      $("filters").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+      render();
+    });
+
+    if (token) {
+      load().then(() => { if (token) timer = setInterval(load, REFRESH_MS); });
+    } else {
+      signOut("");
+    }
+  </script>
+</body>
+</html>
