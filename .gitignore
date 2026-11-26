@@ -1,0 +1,22 @@
+# Secrets: real keys and passwords live only in .env, never in git.
+.env
+.env.*
+!.env.example
+
+# Dependencies (none today, but keep them out if any are added)
+node_modules/
+
+# Temporary files left if the server stops while saving an order
+data/*.tmp
+
+# Logs and OS / editor files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Note: data/orders.json stays tracked as an empty list ([]) because the server needs
+# the file to exist. Never commit it with real orders in it: they contain customers'
+# names, phone numbers and addresses. See README.md.

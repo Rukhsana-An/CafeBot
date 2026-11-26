@@ -1,3 +1,9 @@
+// IMPORTANT: DEVELOPMENT / DEMO STORAGE ONLY
+// Saving orders to a JSON file is meant for local development and demos, not production.
+// On serverless hosting such as Vercel, functions don't guarantee persistent file writes:
+// the file system is read-only or temporary, so saved orders can fail to save or be lost
+// between requests and deployments. Before going live, store orders in a real database.
+//
 // CafeBot order store: saves confirmed orders to data/orders.json.
 //
 // This is the only code that writes orders.json, and it only ever adds confirmed orders.
