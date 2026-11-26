@@ -99,6 +99,10 @@ body {
   background: var(--amber); /* amber = preview, not live */
 }
 
+.status-dot.online {
+  background: #6fcf8f; /* green = live and taking orders */
+}
+
 /* Messages */
 .messages {
   flex: 1;
@@ -160,6 +164,59 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Tap-to-choose buttons above the input */
+.quick-replies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 12px 10px;
+  max-height: 34vh;
+  overflow-y: auto;
+}
+
+.quick-replies:empty {
+  display: none;
+}
+
+.choice {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #dccfc2;
+  border-radius: 999px;
+  background: var(--foam);
+  color: var(--espresso);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.choice:hover:not(:disabled) {
+  border-color: var(--roast);
+  background: var(--latte);
+}
+
+.choice.primary {
+  background: var(--roast);
+  border-color: var(--roast);
+  color: var(--foam);
+}
+
+.choice.primary:hover:not(:disabled) {
+  background: var(--espresso);
+}
+
+.choice:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.choice:focus-visible {
+  outline: 3px solid rgba(111, 78, 55, 0.4);
+  outline-offset: 2px;
 }
 
 /* Input area */

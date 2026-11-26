@@ -13,11 +13,13 @@
       <div class="avatar" aria-hidden="true">☕</div>
       <div class="header-text">
         <h1>CafeBot</h1>
-        <p class="status"><span class="status-dot" aria-hidden="true"></span>Preview mode</p>
+        <p class="status"><span class="status-dot online" aria-hidden="true"></span>Online · order here</p>
       </div>
     </header>
 
     <main id="messages" class="messages" aria-live="polite" aria-label="Chat messages"></main>
+
+    <div id="quick-replies" class="quick-replies" aria-label="Choices"></div>
 
     <form id="chat-form" class="composer" autocomplete="off">
       <label for="message-input" class="visually-hidden">Type your message</label>
@@ -26,7 +28,7 @@
         class="composer-input"
         type="text"
         placeholder="Type your message…"
-        maxlength="500"
+        maxlength="200"
       >
       <button id="send-button" class="send-button" type="submit" aria-label="Send message" disabled>
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">

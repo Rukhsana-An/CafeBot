@@ -52,6 +52,8 @@
 //   { "sessionId": "…", "action": { "type": "confirm_order", "summaryId": "…", "reply": "yes please" } }
 // This is the ONLY way an order is finalized or saved to data/orders.json.
 //
+// Customer chat page: GET / (see customerPages.js and frontend/app.js).
+// Menu for the chat page: GET /api/menu (names, sizes and prices worked out from data/menu.json).
 // Staff dashboard: GET /staff (needs the STAFF_TOKEN environment variable), see staffApi.js.
 //
 // Success response (200):  { "reply": "...", "sessionId": "...", "order": { ...order summary } }
@@ -90,6 +92,7 @@ const { createOrderStore } = require("./orderStore");
 const { redisSettingsFromEnv, createRedisClient } = require("./redis");
 const { createRedisOrderStore, createRedisSessionStore } = require("./redisStore");
 const { handleStaffRequest } = require("./staffApi");
+const { handleCustomerPage } = require("./customerPages");
 
 // The order actions /api/chat accepts. Each is checked and handled by code, using the menu only.
 const ACTIONS = {
@@ -347,8 +350,35 @@ function buildAiRequest({ systemPrompt, menu }, message, history = [], orderSumm
 // THE AI INTEGRATION GOES HERE.
 // It receives { system, messages } from buildAiRequest() and should return the reply text.
 // The API key must come from process.env.AI_API_KEY, never from code.
+// Until then, typed messages get this reply and the chat page offers buttons instead.
 async function callAi(aiRequest) {
-  return "Thanks! I got your message. (Placeholder reply: the AI isn't connected yet.)";
+  return "Sorry, I can't answer typed questions yet. Please use the buttons below to see the menu, order or check out. For anything else, please ask café staff.";
+}
+
+// GET /api/menu: the menu for the chat page to show, read fresh from data/menu.json.
+// Every price is worked out here by code (base price + size extra), never by the page.
+async function handleMenu(res) {
+  let menu;
+  try {
+    ({ menu } = await loadBotContext());
+  } catch (err) {
+    console.error("Could not load bot files:", err.message);
+    return sendJson(res, 500, { error: "CafeBot isn't available right now. Please ask café staff." });
+  }
+  return sendJson(res, 200, {
+    currency: menu.currency,
+    items: menu.items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      description: item.description,
+      available: item.available === true,
+      price: item.price, // the price of the smallest size, or of an item without sizes
+      sizes: (item.sizes || []).map((s) => ({ name: s.name, price: item.price + s.extraCost })),
+      allergens: item.allergens || [],
+      dietary: item.dietary || [],
+    })),
+  });
 }
 
 function handleChat(req, res) {
@@ -467,10 +497,24 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Customer chat page: /, /styles.css and /app.js (see customerPages.js).
+  try {
+    if (await handleCustomerPage(req, res)) return;
+  } catch (err) {
+    console.error("Customer page failed:", err.message);
+    if (!res.headersSent) sendJson(res, 500, { error: "Sorry, something went wrong." });
+    return;
+  }
+
   if (req.url === "/api/chat") {
     if (req.method === "POST") return handleChat(req, res);
     res.setHeader("Allow", "POST");
     return sendJson(res, 405, { error: "Use POST for /api/chat." });
+  }
+  if (req.url === "/api/menu") {
+    if (req.method === "GET") return handleMenu(res);
+    res.setHeader("Allow", "GET");
+    return sendJson(res, 405, { error: "Use GET for /api/menu." });
   }
   return sendJson(res, 404, { error: "Not found." });
 });
